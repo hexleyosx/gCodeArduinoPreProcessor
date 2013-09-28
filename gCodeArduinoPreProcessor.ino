@@ -4,10 +4,13 @@ The circuit:
  * TX is digital pin 11 (connect to RX of other device)
 */
 
-#include <SoftwareSerial.h>
+#include "BigSoftwareSerial.h"
+#include "cGcodeInterface.h"
 
-const int laserPowerLevelPin = 9;
-SoftwareSerial grblSerial(10, 11); // RX, TX
+
+const char laserPowerLevelPin = 9;
+BigSoftwareSerial grblSerial(10, 11); // RX, TX
+cGcodeInterface gCodeObj(&grblSerial, laserPowerLevelPin);
 
 void setup()  
 {
@@ -23,10 +26,10 @@ void setup()
 
 void loop() // run over and over
 {
-  if (grblSerial.available())
+  if (grblSerial.available()) //ack is ok\r nack is error:Number\r
     Serial.write(grblSerial.read());
   if (Serial.available())
-    grblSerial.write(Serial.read());
+    gCodeObj.processNextChar();
 }
 
 //                                in       out 
