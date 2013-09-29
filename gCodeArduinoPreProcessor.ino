@@ -1,9 +1,3 @@
-/*
-The circuit: 
- * RX is digital pin 10 (connect to TX of other device)
- * TX is digital pin 11 (connect to RX of other device)
-*/
-
 #include "BigSoftwareSerial.h"
 #include "cGcodeInterface.h"
 
@@ -16,11 +10,8 @@ void setup()
 {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-
-  //Serial.println("Goodnight moon!");
-
-  // set the data rate for the SoftwareSerial port
   grblSerial.begin(9600);
+  
   //grblSerial.println("Hello, world?");
 }
 

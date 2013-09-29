@@ -19,34 +19,24 @@ cGcodeInterface::~cGcodeInterface()
 	// TODO Auto-generated destructor stub
 }
 
-///
 int cGcodeInterface::processNextChar()
 {
-	//*command = gCodeIn.get();
-
-        char command;
+        char ch = Serial.read();
         
 	int error = 0;
 
-	if( command == 'S' || command == 's')
+	if( ch == 'S' || ch == 's')
 	{
 		cGcodeInterface::processSCommand();
 	}
 	else
 	{
-	    sendCharToGRBL(command);
+	    mGrblSerial->write(ch);
 	}
 
 	return error;
 }
 
-int cGcodeInterface::sendCharToGRBL(char ch)
-{
-	//std::cout << ch;
-        mGrblSerial->write(ch);
-
-	return 0;
-}
 
 int cGcodeInterface::processSCommand()
 {
@@ -57,26 +47,53 @@ int cGcodeInterface::processSCommand()
 	int error = 0;
 
 
-	while( ch!= '\r' )
+	while( ch!= '\r' && !error)
 	{
-		//ch = gCodeIn.get();
-
-		//if timeout || unexpected char.... break and return 1;
-
-		if( ch =='\r' || ch == '\n' || ch == ' ')
+		unsigned long startTime = millis();
+		
+		while(!Serial.available())
 		{
+			unsigned long curTime = millis();
+			
+			if(curTime > startTime)
+			{
+				if((curTime - startTime) > mPowerCommandTimeout)
+				{
+					error = 2;
+					break;
+				}
+			}
+			else 
+			{
+				if((mMaxMillis - startTime) + curTime > mPowerCommandTimeout)
+				{
+					error = 2;
+					break;
+				}
+			}
+		}
 
+		//if timeout 
+		
+		if(!error)
+		{		
+			ch = Serial.read();
+			
+			if( ch =='\r' || ch == '\n' || ch == ' ')
+			{
+	
+			}
+			else if( ch >= '0' && ch <= '9' )
+			{
+				numberStr[cnt++] = ch;
+			}
+			else
+			{
+				//unexpected char.... break and return 1;
+				error = 1;
+				break;
+			}
 		}
-		else if( ch >= '0' && ch <= '9' )
-		{
-			numberStr[cnt++] = ch;
-		}
-		else
-		{
-			error = 1;
-			break;
-		}
-
 	}
 
 	if(!error)
@@ -91,23 +108,21 @@ int cGcodeInterface::processSCommand()
 			mul *= 10;
 		}
 		//set pwm
-		setPWM(power);
+		analogWrite(mOutPin, power);
 		//send ack
+		Serial.print("ok\r");
 	}
-	else
+	else if (error == 1)
 	{
 		//send nack
+		Serial.print("err:S\r");
+	}
+	else if (error == 2)
+	{
+		//send timout
+		Serial.print("err:T\r");
 	}
 
-
 	return error;
-}
-
-int cGcodeInterface::setPWM( unsigned char power )
-{
-	//std::cout <<"Setting power: "<< (int)power << std::endl;
-    analogWrite(mOutPin, power);
-    
-    return 0;
 }
 
